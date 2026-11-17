@@ -1,4 +1,5 @@
 const STORAGE_KEY = "tasks";
+const CATEGORIES_KEY = "categories";
 
 // Una tarea válida es un objeto con id y title de tipo texto
 function isValidTask(task) {
@@ -24,6 +25,23 @@ export function getTasks() {
     return Array.isArray(parsed) ? parsed.filter(isValidTask) : [];
   } catch (error) {
     console.error("No se pudieron leer las tareas guardadas:", error);
+    return [];
+  }
+}
+
+export function getCategories() {
+  try{
+    const raw = localStorage.getItem(CATEGORIES_KEY);
+
+    if (raw === null) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item?.id === "string" && typeof item?.name === "string") : [];
+  } catch (error) {
+    console.error("No se pudieron leer las categorías guardadas:", error);
     return [];
   }
 }
