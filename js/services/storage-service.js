@@ -46,6 +46,16 @@ export function getCategories() {
   }
 }
 
+export function saveCategories(categories) {
+  try{
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+    return true;
+  } catch (error) {
+    console.error("No se pudieron guardar las categorías:", error);
+    return false;
+  }
+}
+
 export function saveTasks(tasks) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
