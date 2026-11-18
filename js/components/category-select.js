@@ -61,10 +61,7 @@ template.innerHTML = `
   <p class="error" role="alert" hidden></p>
 `;
 
-// <category-select>: lista de categorías + opción "Nueva categoría...".
-//   select.categories = [{ id, name }]  -> opciones
-//   select.value = id                   -> categoría elegida
-//   select.read()                       -> { categoryId, newCategory } o null si es inválido
+
 class CategorySelect extends HTMLElement {
   #categories = [];
 
@@ -113,8 +110,6 @@ class CategorySelect extends HTMLElement {
     this.selectEl.focus();
   }
 
-  // { categoryId } si eligió una existente, { newCategory } si escribió una nueva.
-  // null si eligió "Nueva categoría" y dejó el nombre vacío.
   read() {
     if (this.selectEl.value !== NEW_VALUE) {
       return { categoryId: this.selectEl.value, newCategory: null };
