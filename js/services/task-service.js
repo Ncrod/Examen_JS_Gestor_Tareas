@@ -1,5 +1,6 @@
 import { generateId } from "../utils/id-generator.js";
 import { getTasks, saveTasks } from "./storage-service.js";
+import { IMPORTED_ID, resolveCategoryId } from "./category-service.js";
 
 function normalizeTitle(title) {
   return title.trim().toLowerCase();
@@ -9,7 +10,7 @@ function cleanDescription(description) {
   return typeof description === "string" ? description.trim() : "";
 }
 
-export function addTask({ title, description, completed = false, createdAt } = {}) {
+export function addTask({ title, description, completed = false, createdAt, categoryId } = {}) {
   const cleanTitle = typeof title === "string" ? title.trim() : "";
 
   if (!cleanTitle) {
@@ -23,6 +24,7 @@ export function addTask({ title, description, completed = false, createdAt } = {
     createdAt: createdAt ?? new Date().toISOString(),
     completed: Boolean(completed),
     imported: false,
+    categoryId: resolveCategoryId(categoryId),
   };
 
   if (!saveTasks([...getTasks(), task])) {
@@ -58,6 +60,10 @@ export function updateTask(id, changes = {}) {
 
   if ("completed" in changes) {
     updated.completed = Boolean(changes.completed);
+  }
+
+  if ("categoryId" in changes) {
+    updated.categoryId = resolveCategoryId(changes.categoryId);
   }
 
   tasks[index] = updated;
@@ -111,10 +117,12 @@ export function clearAll() {
   return saveTasks([]) ? [] : null;
 }
 
-export function addImportedTasks(importedTasks) {
+export function addImportedTasks(importedTasks, categoryId = IMPORTED_ID) {
   if (!Array.isArray(importedTasks)) {
     return [];
   }
+
+  const targetCategory = resolveCategoryId(categoryId);
 
   const current = getTasks();
   const knownTitles = new Set(
@@ -134,7 +142,7 @@ export function addImportedTasks(importedTasks) {
     }
 
     knownTitles.add(key);
-    toAdd.push({ ...task, imported: true });
+    toAdd.push({ ...task, imported: true, categoryId: targetCategory });
   }
 
   if (toAdd.length > 0 && !saveTasks([...current, ...toAdd])) {
