@@ -1,4 +1,4 @@
-/* Estilos de la pantalla principal: título, resumen, barra de acciones y filtro.
+v/* Estilos de la pantalla principal: título, resumen, barra de acciones y filtro.
    Los componentes (task-item, modales, etc.) tienen sus propios estilos
    dentro de su Shadow DOM. */
 
@@ -148,6 +148,31 @@ task-app {
   color: var(--color-success);
 }
 
+/* ---------- Popup de categ ---------- */
+
+.category-button svg {
+  flex: none;
+}
+
+.category-menu {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.category-menu .filter-option span {
+  overflow-wrap: anywhere;
+}
+
+.category-menu .menu-separator {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--color-border);
+}
+
+.category-menu .manage-option::after {
+  content: none;
+}
+
 /* ---------- Escritorio: título a la izquierda y barra en fila a la derecha ---------- */
 
 @media (min-width: 768px) {
@@ -169,5 +194,10 @@ task-app {
   .filter-menu {
     right: 0;
     left: auto;
+  }
+
+  .category-menu {
+    left: 0;
+    right: auto;
   }
 }
