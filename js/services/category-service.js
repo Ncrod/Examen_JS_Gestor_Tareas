@@ -65,6 +65,7 @@ export function findOrCreateCategory(name){
     return existing ? {category: existing} : addCategory(clean);
 }
 
+//actualiza el nombre de una categoria, si no existe devuelve error
 export function updateCategory(id, name){
     const categories = getCategories();
     const index = categories.findIndex((category) => category.id === id);
@@ -86,4 +87,19 @@ export function updateCategory(id, name){
     }
 
     return { category: categories[index] };
+}
+
+export function deleteCategory(id){
+    const categories = getCategories();
+    const remaining = categories.filter((category) => category.id !== id);
+
+    if(remaining.length === categories.length){
+        return false;
+    }
+
+    const tasks = getTasks().map((task) => 
+        getTaskCategoryId(task) === id ? { ...task, categoryId: NONE_ID } : task
+    );
+
+    return saveTasks(tasks) && saveCategories(remaining);
 }
