@@ -1,4 +1,5 @@
 import { fetchTodos } from "../services/api-service.js";
+import "./category-select.js";
 
 const template = document.createElement("template");
 
@@ -136,6 +137,10 @@ template.innerHTML = `
       cursor: pointer;
     }
 
+    .category {
+      margin-bottom: var(--space-4);
+    }
+
     .select-all {
       margin-bottom: var(--space-3);
       background: var(--color-surface-raised);
@@ -249,6 +254,8 @@ template.innerHTML = `
       </div>
 
       <div class="content" hidden>
+        <category-select class="category"></category-select>
+
         <label class="select-all">
           <input class="select-all-input" type="checkbox">
           <span>Seleccionar todo</span>
@@ -284,6 +291,7 @@ class ImportModal extends HTMLElement {
     this.errorEl = root.querySelector(".error");
     this.errorMessage = root.querySelector(".error-message");
     this.contentEl = root.querySelector(".content");
+    this.categorySelect = root.querySelector("category-select");
     this.selectAll = root.querySelector(".select-all-input");
     this.list = root.querySelector(".todos");
     this.counter = root.querySelector(".counter");
@@ -307,10 +315,14 @@ class ImportModal extends HTMLElement {
     });
   }
 
-  open() {
+  // categories: [{ id, name }]. Por defecto las tareas van a "Importadas".
+  open({ categories = [], categoryId = "imported" } = {}) {
     if (this.dialog.open) {
       return;
     }
+
+    this.categorySelect.categories = categories;
+    this.categorySelect.value = categoryId;
 
     this.dialog.showModal();
     this.#load();
@@ -422,9 +434,15 @@ class ImportModal extends HTMLElement {
       return;
     }
 
+    const category = this.categorySelect.read();
+
+    if (!category) {
+      return;
+    }
+
     this.dispatchEvent(
       new CustomEvent("tasks-import", {
-        detail: { tasks },
+        detail: { tasks, ...category },
         bubbles: true,
         composed: true,
       })
