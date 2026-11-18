@@ -224,12 +224,7 @@ template.innerHTML = `
   </dialog>
 `;
 
-// <category-manager-modal>: crear, renombrar y eliminar categorías.
-// No guarda nada: avisa con eventos y <task-app> usa los servicios.
-//   category-add     { name }
-//   category-rename  { id, name }
-//   category-delete  { id }
-// Después de cada cambio, <task-app> vuelve a asignar `categories` (o llama a showError).
+
 class CategoryManagerModal extends HTMLElement {
   #categories = [];
   #editingId = null;

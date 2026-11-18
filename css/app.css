@@ -126,7 +126,7 @@ task-app {
   border: none;
   border-radius: 12px;
   background: transparent;
-  font-size: var(--font-size-task);
+  font-size: var(--font-size-button);
   font-weight: 500;
   text-align: left;
 }
