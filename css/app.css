@@ -1,6 +1,4 @@
-v/* Estilos de la pantalla principal: título, resumen, barra de acciones y filtro.
-   Los componentes (task-item, modales, etc.) tienen sus propios estilos
-   dentro de su Shadow DOM. */
+
 
 task-app {
   display: block;
