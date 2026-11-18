@@ -103,3 +103,7 @@ export function deleteCategory(id){
 
     return saveTasks(tasks) && saveCategories(remaining);
 }
+
+export function resolveCategoryId(id){
+    return getAllCategories().some((category) => category.id === id) ? id : NONE_ID;
+}
