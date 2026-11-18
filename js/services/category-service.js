@@ -66,5 +66,24 @@ export function findOrCreateCategory(name){
 }
 
 export function updateCategory(id, name){
-    
+    const categories = getCategories();
+    const index = categories.findIndex((category) => category.id === id);
+
+    if(index === -1){
+        return {error: "No se encontró la categoría"};
+    }
+
+    const result = validateName(name, id);
+
+    if(result.error){
+        return result;
+    }
+
+    categories[index] = { ...categories[index], name: result.name };
+
+    if (!saveCategories(categories)) {
+        return {error: "No se pudo guardar la categoría"};
+    }
+
+    return { category: categories[index] };
 }
