@@ -1,3 +1,5 @@
+import "./category-select.js";
+
 const template = document.createElement("template");
 
 template.innerHTML = `
@@ -238,6 +240,10 @@ template.innerHTML = `
         <input id="task-date" name="createdAt" type="date">
       </div>
 
+      <div class="field">
+        <category-select></category-select>
+      </div>
+
       <label class="check">
         <input id="task-completed" name="completed" type="checkbox">
         <span>Completada</span>
@@ -278,6 +284,7 @@ class TaskFormModal extends HTMLElement {
     this.descriptionInput = root.querySelector("#task-description");
     this.dateInput = root.querySelector("#task-date");
     this.completedInput = root.querySelector("#task-completed");
+    this.categorySelect = root.querySelector("category-select");
     this.titleError = root.querySelector("#title-error");
     this.saveButton = root.querySelector(".save");
 
@@ -316,9 +323,10 @@ class TaskFormModal extends HTMLElement {
     return this.#task !== null;
   }
 
-  // open()            -> modo crear
-  // open({ task })    -> modo editar
-  open({ task = null } = {}) {
+  // open({ categories })          -> modo crear
+  // open({ task, categories })    -> modo editar
+  // categories: [{ id, name }] para el selector. categoryId: la que viene elegida.
+  open({ task = null, categories = [], categoryId } = {}) {
     if (this.dialog.open) {
       return;
     }
@@ -326,6 +334,8 @@ class TaskFormModal extends HTMLElement {
     this.#task = task;
     this.form.reset();
     this.#clearError();
+    this.categorySelect.categories = categories;
+    this.categorySelect.value = categoryId;
 
     if (task) {
       this.titleEl.textContent = "Editar tarea";
@@ -377,7 +387,14 @@ class TaskFormModal extends HTMLElement {
       return;
     }
 
+    const category = this.categorySelect.read();
+
+    if (!category) {
+      return;
+    }
+
     const detail = {
+      ...category,
       title: this.titleInput.value.trim(),
       description: this.descriptionInput.value.trim(),
       createdAt: this.#getCreatedAt(),
