@@ -172,6 +172,7 @@ template.innerHTML = `
       <span class="meta">
         <time class="date"></time>
         <span class="badge" hidden>Importada</span>
+        <span class="badge category"></span>
       </span>
     </div>
 
@@ -225,7 +226,8 @@ class TaskItem extends HTMLElement {
     this.contentEl = root.querySelector(".content");
     this.titleEl = root.querySelector(".title");
     this.dateEl = root.querySelector(".date");
-    this.badge = root.querySelector(".badge");
+    this.badge = root.querySelector(".badge[hidden]");
+    this.categoryEl = root.querySelector(".category");
     this.menuButton = root.querySelector(".menu-button");
     this.menu = root.querySelector(".menu");
     this.editButton = root.querySelector(".edit");
@@ -295,6 +297,8 @@ class TaskItem extends HTMLElement {
     this.dateEl.textContent = formatDate(task.createdAt);
     this.dateEl.setAttribute("datetime", task.createdAt);
     this.badge.hidden = !task.imported;
+    this.categoryEl.textContent = task.categoryName ?? "";
+    this.categoryEl.hidden = !task.categoryName;
     this.editButton.hidden = Boolean(task.imported);
 
     this.row.classList.toggle("completed", completed);
