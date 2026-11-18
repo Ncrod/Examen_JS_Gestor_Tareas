@@ -89,6 +89,7 @@ export function updateCategory(id, name){
     return { category: categories[index] };
 }
 
+// elimina categoria y reasigna las tareas a sin categoria
 export function deleteCategory(id){
     const categories = getCategories();
     const remaining = categories.filter((category) => category.id !== id);
@@ -104,6 +105,7 @@ export function deleteCategory(id){
     return saveTasks(tasks) && saveCategories(remaining);
 }
 
+// si el id no existe, se coloca en sin categoria
 export function resolveCategoryId(id){
     return getAllCategories().some((category) => category.id === id) ? id : NONE_ID;
 }
