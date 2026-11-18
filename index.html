@@ -43,6 +43,17 @@
                 Importar tarea
               </button>
 
+              <div class="filter-wrapper category-wrapper">
+                <button class="btn category-button" type="button" aria-haspopup="menu" aria-expanded="false">
+                  <span class="category-label">Categoria: Todas</span>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 4l4 4 4-4" />
+                  </svg>
+                </button>
+
+                <div class="filter-menu category-menu" role="menu" aria-label="Filtrar por categoria" hidden></div>
+              </div>
+
               <div class="filter-wrapper">
                 <button class="btn filter" type="button" aria-label="Filtrar tareas" aria-haspopup="menu" aria-expanded="false">
                   <img src="public/filtro.svg" alt="">
@@ -70,6 +81,7 @@
         <task-form-modal></task-form-modal>
         <task-detail-modal></task-detail-modal>
         <import-modal></import-modal>
+        <category-manager-modal></category-manager-modal>
         <confirm-dialog></confirm-dialog>
         <toast-message></toast-message>
       </task-app>
