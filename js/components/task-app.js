@@ -4,7 +4,17 @@ import "./task-detail-modal.js";
 import "./import-modal.js";
 import "./confirm-dialog.js";
 import "./toast-message.js";
+import "./category-manager-modal.js";
 import { getTasks } from "../services/storage-service.js";
+import {
+  addCategory,
+  deleteCategory,
+  findOrCreateCategory,
+  getAllCategories,
+  getTaskCategoryId,
+  getUserCategories,
+  updateCategory,
+} from "../services/category-service.js";
 import { addImportedTasks, addTask, clearAll, deleteTask, toggleTask, updateTask } from "../services/task-service.js";
 
 // <task-app> no dibuja nada: el HTML está en index.html y los estilos en css/app.css.
@@ -24,6 +34,9 @@ class TaskApp extends HTMLElement {
 
   // Filtro por estado: "all" | "pending" | "completed"
   #filter = "all";
+
+  // Filtro por categoría: "all" | id de categoría (incluye "none" e "imported")
+  #categoryFilter = "all";
 
   // Texto del buscador
   #search = "";
@@ -52,8 +65,12 @@ class TaskApp extends HTMLElement {
     this.addButton = this.querySelector(".add");
     this.importButton = this.querySelector(".import");
     this.filterButton = this.querySelector(".filter");
-    this.filterMenu = this.querySelector(".filter-menu");
-    this.filterOptions = this.querySelectorAll(".filter-option");
+    this.filterMenu = this.querySelector(".filter-menu:not(.category-menu)");
+    this.filterOptions = this.filterMenu.querySelectorAll(".filter-option");
+    this.categoryButton = this.querySelector(".category-button");
+    this.categoryLabel = this.querySelector(".category-label");
+    this.categoryMenu = this.querySelector(".category-menu");
+    this.categoryManager = this.querySelector("category-manager-modal");
     this.clearButton = this.querySelector(".clear");
     this.list = this.querySelector("task-list");
     this.formModal = this.querySelector("task-form-modal");
@@ -62,7 +79,7 @@ class TaskApp extends HTMLElement {
     this.confirmDialog = this.querySelector("confirm-dialog");
     this.toast = this.querySelector("toast-message");
 
-    this.addButton.addEventListener("click", () => this.formModal.open());
+    this.addButton.addEventListener("click", () => this.formModal.open({ categories: getAllCategories() }));
     this.formModal.addEventListener("task-save", (event) => this.#onTaskSave(event));
 
     this.searchInput.addEventListener("input", () => {
@@ -78,10 +95,20 @@ class TaskApp extends HTMLElement {
       if (event.key === "Escape" && !this.filterMenu.hidden) {
         this.#closeFilterMenu();
         this.filterButton.focus();
+      } else if (event.key === "Escape" && !this.categoryMenu.hidden) {
+        this.#closeCategoryMenu();
+        this.categoryButton.focus();
       }
     });
 
-    this.importButton.addEventListener("click", () => this.importModal.open());
+    // Popup de categorías
+    this.categoryButton.addEventListener("click", () => this.#toggleCategoryMenu());
+    this.categoryMenu.addEventListener("click", (event) => this.#onCategoryMenuClick(event));
+    this.categoryManager.addEventListener("category-add", (event) => this.#onCategoryAdd(event));
+    this.categoryManager.addEventListener("category-rename", (event) => this.#onCategoryRename(event));
+    this.categoryManager.addEventListener("category-delete", (event) => this.#onCategoryDelete(event));
+
+    this.importButton.addEventListener("click", () => this.importModal.open({ categories: getAllCategories() }));
     this.clearButton.addEventListener("click", () => this.#onClear());
     this.importModal.addEventListener("tasks-import", (event) => this.#onTasksImport(event));
 
@@ -107,6 +134,10 @@ class TaskApp extends HTMLElement {
 
     if (!path.includes(this.filterMenu) && !path.includes(this.filterButton)) {
       this.#closeFilterMenu();
+    }
+
+    if (!path.includes(this.categoryMenu) && !path.includes(this.categoryButton)) {
+      this.#closeCategoryMenu();
     }
   };
 
@@ -140,6 +171,169 @@ class TaskApp extends HTMLElement {
     this.#render();
   }
 
+  // ---------- Popup de categorías ----------
+
+  #toggleCategoryMenu() {
+    if (!this.categoryMenu.hidden) {
+      this.#closeCategoryMenu();
+      return;
+    }
+
+    this.#renderCategoryMenu();
+    this.categoryMenu.hidden = false;
+    this.categoryButton.setAttribute("aria-expanded", "true");
+    this.categoryMenu.querySelector('[aria-checked="true"]')?.focus();
+  }
+
+  #closeCategoryMenu() {
+    this.categoryMenu.hidden = true;
+    this.categoryButton.setAttribute("aria-expanded", "false");
+  }
+
+  // Opciones: Todas, Sin categoría, Importadas, las del usuario y "Gestionar categorías"
+  #renderCategoryMenu() {
+    const option = (text, filter) => {
+      const button = document.createElement("button");
+      const label = document.createElement("span");
+
+      label.textContent = text;
+      button.className = "filter-option";
+      button.type = "button";
+      button.setAttribute("role", "menuitemradio");
+      button.setAttribute("aria-checked", String(filter === this.#categoryFilter));
+      button.dataset.category = filter;
+      button.append(label);
+
+      return button;
+    };
+
+    const separator = document.createElement("div");
+    separator.className = "menu-separator";
+    separator.setAttribute("role", "separator");
+
+    const manage = document.createElement("button");
+    manage.className = "filter-option manage-option";
+    manage.type = "button";
+    manage.setAttribute("role", "menuitem");
+    manage.dataset.manage = "true";
+    manage.textContent = "Gestionar categorías...";
+
+    this.categoryMenu.replaceChildren(
+      option("Todas", "all"),
+      ...getAllCategories().map((category) => option(category.name, category.id)),
+      separator,
+      manage
+    );
+  }
+
+  #onCategoryMenuClick(event) {
+    const button = event.target.closest("button");
+
+    if (!button) {
+      return;
+    }
+
+    this.#closeCategoryMenu();
+
+    if (button.dataset.manage) {
+      this.categoryManager.categories = getUserCategories();
+      this.categoryManager.open();
+    } else {
+      this.#categoryFilter = button.dataset.category;
+      this.categoryButton.focus();
+      this.#render();
+    }
+  }
+
+  // Nombre de la categoría seleccionada, para el botón del menú
+  #renderCategoryButton() {
+    const current = getAllCategories().find((category) => category.id === this.#categoryFilter);
+
+    this.categoryLabel.textContent = `Categoría: ${current ? current.name : "Todas"}`;
+  }
+
+  // Crea una categoría desde el gestor
+  #onCategoryAdd(event) {
+    const result = addCategory(event.detail.name);
+
+    if (result.error) {
+      this.categoryManager.showError(result.error);
+      return;
+    }
+
+    this.categoryManager.showError("");
+    this.categoryManager.clearNewInput();
+    this.categoryManager.categories = getUserCategories();
+    this.toast.show("Categoría creada");
+    this.#render();
+  }
+
+  // Renombra una categoría desde el gestor
+  #onCategoryRename(event) {
+    const result = updateCategory(event.detail.id, event.detail.name);
+
+    if (result.error) {
+      this.categoryManager.showError(result.error);
+      return;
+    }
+
+    this.categoryManager.showError("");
+    this.categoryManager.categories = getUserCategories();
+    this.toast.show("Categoría actualizada");
+    this.#render();
+  }
+
+  // Elimina una categoría desde el gestor: sus tareas pasan a "Sin categoría"
+  async #onCategoryDelete(event) {
+    const category = getUserCategories().find((item) => item.id === event.detail.id);
+
+    if (!category) {
+      return;
+    }
+
+    const count = this.#tasks.filter((task) => getTaskCategoryId(task) === category.id).length;
+    const effect =
+      count === 0
+        ? ""
+        : ` Sus ${count === 1 ? "1 tarea pasará" : `${count} tareas pasarán`} a "Sin categoría".`;
+
+    const accepted = await this.confirmDialog.open({
+      title: "Eliminar categoría",
+      message: `¿Quieres eliminar la categoría "${category.name}"?${effect}`,
+      confirmText: "Eliminar",
+    });
+
+    if (!accepted) {
+      return;
+    }
+
+    if (deleteCategory(category.id)) {
+      this.toast.show("Categoría eliminada");
+    } else {
+      this.#showSaveError();
+    }
+
+    this.#loadTasks();
+    this.categoryManager.categories = getUserCategories();
+  }
+
+  // Resuelve la categoría elegida en un formulario: una existente, o una nueva (que se crea).
+  // Devuelve el id, o null si no se pudo crear (ya muestra el aviso).
+  #resolveCategory({ categoryId, newCategory }) {
+    if (!newCategory) {
+      return categoryId;
+    }
+
+    const result = findOrCreateCategory(newCategory);
+
+    if (result.error) {
+      this.toast.show(result.error, "error");
+      return null;
+    }
+
+    return result.category.id;
+  }
+
   // ---------- Acciones sobre las tareas ----------
 
   // Clic en una tarea: abre el popup con su información
@@ -147,7 +341,7 @@ class TaskApp extends HTMLElement {
     const task = this.#tasks.find((item) => item.id === event.detail.id);
 
     if (task) {
-      this.detailModal.open({ task });
+      this.detailModal.open({ task: this.#withCategoryName(task) });
     }
   }
 
@@ -156,7 +350,11 @@ class TaskApp extends HTMLElement {
     const task = this.#tasks.find((item) => item.id === event.detail.id);
 
     if (task) {
-      this.formModal.open({ task });
+      this.formModal.open({
+        task,
+        categories: getAllCategories(),
+        categoryId: getTaskCategoryId(task),
+      });
     }
   }
 
@@ -213,7 +411,13 @@ class TaskApp extends HTMLElement {
 
   // Tareas elegidas en el modal de importar (los repetidos se descartan solos)
   #onTasksImport(event) {
-    const added = addImportedTasks(event.detail.tasks);
+    const categoryId = this.#resolveCategory(event.detail);
+
+    if (categoryId === null) {
+      return;
+    }
+
+    const added = addImportedTasks(event.detail.tasks, categoryId);
 
     this.#loadTasks();
 
@@ -230,9 +434,15 @@ class TaskApp extends HTMLElement {
   // Guardar desde el formulario: con id actualiza, sin id crea
   #onTaskSave(event) {
     const { id, title, description, createdAt, completed } = event.detail;
+    const categoryId = this.#resolveCategory(event.detail);
+
+    // No se pudo crear la categoría nueva: no se guarda la tarea a medias
+    if (categoryId === null) {
+      return;
+    }
 
     if (id) {
-      const updated = updateTask(id, { title, description, completed });
+      const updated = updateTask(id, { title, description, completed, categoryId });
 
       if (updated) {
         this.toast.show("Tarea actualizada");
@@ -240,7 +450,7 @@ class TaskApp extends HTMLElement {
         this.#showSaveError();
       }
     } else {
-      const created = addTask({ title, description, createdAt, completed });
+      const created = addTask({ title, description, createdAt, completed, categoryId });
 
       if (created) {
         this.toast.show("Tarea creada");
@@ -273,15 +483,33 @@ class TaskApp extends HTMLElement {
 
   // Dibuja la pantalla con el estado actual
   #render() {
+    // Si la categoría filtrada ya no existe (se eliminó), se vuelve a "Todas"
+    if (
+      this.#categoryFilter !== "all" &&
+      !getAllCategories().some((category) => category.id === this.#categoryFilter)
+    ) {
+      this.#categoryFilter = "all";
+    }
+
     const visible = this.#getVisibleTasks();
 
     // "Sin resultados" solo si hay tareas pero el filtro o la búsqueda las ocultan todas
-    const hasFilters = this.#filter !== "all" || this.#search.trim() !== "";
+    const hasFilters =
+      this.#filter !== "all" || this.#categoryFilter !== "all" || this.#search.trim() !== "";
 
     this.list.filtered = hasFilters && this.#tasks.length > 0;
-    this.list.tasks = visible;
+    this.list.tasks = visible.map((task) => this.#withCategoryName(task));
 
+    this.#renderCategoryButton();
     this.#renderSummary();
+  }
+
+  // Copia de la tarea con el nombre de su categoría, solo para mostrarla
+  #withCategoryName(task) {
+    const id = getTaskCategoryId(task);
+    const category = getAllCategories().find((item) => item.id === id);
+
+    return { ...task, categoryName: category ? category.name : "Sin categoría" };
   }
 
   // Resumen con el total de tareas (sin importar el filtro): "5 tareas · 2 completadas"
@@ -308,6 +536,10 @@ class TaskApp extends HTMLElement {
       tasks = tasks.filter((task) => !task.completed);
     } else if (this.#filter === "completed") {
       tasks = tasks.filter((task) => task.completed);
+    }
+
+    if (this.#categoryFilter !== "all") {
+      tasks = tasks.filter((task) => getTaskCategoryId(task) === this.#categoryFilter);
     }
 
     const text = normalize(this.#search.trim());
